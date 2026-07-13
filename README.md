@@ -8,7 +8,7 @@ ScholarAI is a final-year project that recommends universities and scholarships 
 ## Tech Stack
 
 - **Frontend:** React
-- **Backend:**Python FastAPI (Modular Monolith)
+- **Backend:** Python FastAPI (Modular Monolith)
 - **AI Service:**  (Content-Based Filtering Engine)
 - **Database:** MySQL
 
