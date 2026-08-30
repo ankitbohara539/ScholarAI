@@ -1,15 +1,7 @@
 
+import { RouterProvider } from 'react-router-dom'
+import { router } from '@/router'
 
-
-function App() {
-  return (
-    <>
-    <div className="App">
-      <h1>Welcome to Scholar AI</h1>
-      <p>Your AI-Powered University and Scholarship Recommendation Platform</p>
-    </div>
-    </>
-  );
+export default function App() {
+  return <RouterProvider router={router} />
 }
-
-export default App;
