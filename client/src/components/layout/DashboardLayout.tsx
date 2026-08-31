@@ -7,7 +7,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { NavLink } from "react-router-dom";
 
+import { NotificationBell } from "@/components/NotificationBell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,7 @@ import { cn } from "@/lib/utils";
 export interface NavItem {
   label: string;
   icon: LucideIcon;
-  active?: boolean;
+  to: string;
 }
 
 export function DashboardLayout({
@@ -58,27 +60,24 @@ export function DashboardLayout({
       </div>
       <Separator />
       <nav className="flex-1 space-y-1 p-4">
-        {navItems.map(({ label, icon: Icon, active }) => (
-          <button
+        {navItems.map(({ label, icon: Icon, to }) => (
+          <NavLink
             key={label}
-            type="button"
-            disabled={!active}
-            className={cn(
+            to={to}
+            onClick={() => setMobileOpen(false)}
+            className={({ isActive }) => cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
-              active
-                ? "bg-primary text-white shadow-sm"
-                : "text-muted-foreground hover:bg-muted disabled:cursor-default disabled:opacity-70",
+              isActive ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-muted",
             )}
           >
             <Icon className="size-4" />
             <span className="flex-1">{label}</span>
-            {!active && <span className="text-[10px] uppercase">Soon</span>}
-          </button>
+          </NavLink>
         ))}
       </nav>
       <div className="p-4">
         <div className="rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
-          Recommendation tools will be added in a later project phase.
+          Recommendations combine your verified profile with imported university data.
         </div>
       </div>
     </>
@@ -120,10 +119,12 @@ export function DashboardLayout({
             >
               <Menu />
             </Button>
-            {/* <div>
+            <div>
               <h1 className="text-lg font-semibold sm:text-xl">{title}</h1>
-            </div> */}
+            </div>
           </div>
+          <div className="flex items-center gap-1">
+          <NotificationBell />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-auto gap-3 px-2">
@@ -149,6 +150,7 @@ export function DashboardLayout({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </header>
         <main className="mx-auto max-w-7xl p-4 sm:p-8">{children}</main>
       </div>

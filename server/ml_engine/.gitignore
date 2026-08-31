@@ -1,0 +1,4 @@
+artifacts/*.pt
+artifacts/*.json
+__pycache__/
+.pytest_cache/
