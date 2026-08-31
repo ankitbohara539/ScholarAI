@@ -1,17 +1,19 @@
 import api from '@/api/axios'
 
 export interface StudentDashboardData {
-  message: string
-  recommended_universities: number
-  saved_universities: number
-  profile_completion: string
+  profile_completion_percentage: number
+  verification_status: 'draft' | 'pending' | 'verified' | 'rejected'
+  recommendations_available: number
+  unread_notifications: number
 }
 
 export interface AdminDashboardData {
   total_students: number
-  active_users: number
-  total_universities: number | null
-  university_data_status: string
+  pending_verification: number
+  verified_students: number
+  suspended_students: number
+  total_universities: number
+  active_universities: number
 }
 
 export const dashboardApi = {

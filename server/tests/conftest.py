@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.db.database import get_db
-from app.models import User
+from app.models import Notification, Recommendation, StudentProfile, University, User
 from main import app
 
 test_engine = create_engine(
@@ -37,7 +37,8 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest.fixture(autouse=True)
 def clean_database() -> Generator[None, None, None]:
     with TestingSessionLocal() as db:
-        db.execute(delete(User))
+        for model in (Recommendation, Notification, StudentProfile, University, User):
+            db.execute(delete(model))
         db.commit()
     yield
 

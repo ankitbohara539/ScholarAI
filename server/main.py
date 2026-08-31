@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.exceptions import AppException
 from app.routes import api_router
+from app.websocket.routes import router as websocket_router
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
@@ -44,3 +45,4 @@ def health_check() -> dict[str, str]:
 
 
 app.include_router(api_router, prefix=settings.api_prefix)
+app.include_router(websocket_router)

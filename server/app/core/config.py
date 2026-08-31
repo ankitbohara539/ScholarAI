@@ -20,6 +20,15 @@ class Settings(BaseSettings):
         default="http://localhost:5173", validation_alias="FRONTEND_ORIGIN"
     )
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
+    ml_model_path: Path = Field(
+        default=SERVER_DIR / "ml_engine" / "artifacts" / "admission_mlp.pt",
+        validation_alias="ML_MODEL_PATH",
+    )
+    ml_metadata_path: Path = Field(
+        default=SERVER_DIR / "ml_engine" / "artifacts" / "metadata.json",
+        validation_alias="ML_METADATA_PATH",
+    )
+    ml_model_version: str = Field(default="admission-mlp-v1", validation_alias="ML_MODEL_VERSION")
 
     model_config = SettingsConfigDict(
         env_file=SERVER_DIR / ".env",
@@ -34,6 +43,11 @@ class Settings(BaseSettings):
         if value != "HS256":
             raise ValueError("Only HS256 is supported by this application")
         return value
+
+    @field_validator("ml_model_path", "ml_metadata_path", mode="after")
+    @classmethod
+    def resolve_ml_path(cls, value: Path) -> Path:
+        return value if value.is_absolute() else SERVER_DIR / value
 
     @property
     def cors_origins(self) -> list[str]:
