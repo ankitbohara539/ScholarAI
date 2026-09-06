@@ -14,6 +14,7 @@ class Prediction:
     university_id: int
     score: float
     category: str
+    ml_score: float | None = None
 
 
 class RecommendationPredictor:
@@ -58,6 +59,7 @@ class RecommendationPredictor:
             Prediction(
                 university_id=prepared.universities[index].id,
                 score=float(np.clip(hybrid[index], 0, 1)),
+                ml_score=float(np.clip(adjusted_ann[index], 0, 1)),
                 category=self._category(float(fit[index])),
             )
             for index in order

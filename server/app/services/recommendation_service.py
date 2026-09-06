@@ -1,5 +1,7 @@
 import logging
+from dataclasses import asdict
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
@@ -13,7 +15,9 @@ from app.repositories.notification_repository import NotificationRepository
 from app.repositories.recommendation_repository import RecommendationRepository
 from app.repositories.student_profile_repository import StudentProfileRepository
 from app.repositories.university_repository import UniversityRepository
-from app.schemas.recommendation import RecommendationItem, RecommendationList
+from app.schemas.recommendation import RecommendationItem, RecommendationList, SimulationRequest
+from app.services.cost_estimator import CostEstimator
+from app.services.match_service import MatchEvaluator
 from app.schemas.university import UniversityResponse
 
 logger = logging.getLogger(__name__)
@@ -27,6 +31,19 @@ class RecommendationService:
         self.universities = UniversityRepository(db)
         self.recommendations = RecommendationRepository(db)
         self.notifications = NotificationRepository(db)
+        self.match_evaluator = MatchEvaluator()
+        self.cost_estimator = CostEstimator()
+
+    def _item(self, profile: object, university: object, *, score: float, ml_score: float, rank: int, category: str) -> RecommendationItem:
+        return RecommendationItem(
+            university=UniversityResponse.model_validate(university),
+            score=score,
+            ml_score=ml_score,
+            rank=rank,
+            category=category,
+            match=asdict(self.match_evaluator.evaluate(profile, university)),  # type: ignore[arg-type]
+            cost=asdict(self.cost_estimator.estimate(profile, university)),  # type: ignore[arg-type]
+        )
 
     def generate(self, student_id: int, top_k: int) -> tuple[RecommendationList, Notification | None]:
         profile = self.profiles.get_by_user_id(student_id)
@@ -61,11 +78,10 @@ class RecommendationService:
             model_version=model_version,
             generated_at=rows[0].created_at if rows else datetime.now(timezone.utc),
             recommendations=[
-                RecommendationItem(
-                    university=UniversityResponse.model_validate(university_by_id[row.university_id]),
-                    score=float(row.score),
-                    rank=row.rank,
-                    category=row.category,
+                self._item(
+                    profile, university_by_id[row.university_id], score=float(row.score),
+                    ml_score=float(row.ml_score if row.ml_score is not None else row.score),
+                    rank=row.rank, category=row.category,
                 )
                 for row in rows
             ],
@@ -78,18 +94,57 @@ class RecommendationService:
         rows = self.recommendations.latest(student_id)
         if not rows:
             return RecommendationList(generation_id=None, model_version=None, generated_at=None, recommendations=[])
+        profile = self.profiles.get_by_user_id(student_id)
         first = rows[0][0]
         return RecommendationList(
             generation_id=first.generation_id,
             model_version=first.model_version,
             generated_at=first.created_at,
             recommendations=[
-                RecommendationItem(
-                    university=UniversityResponse.model_validate(university),
-                    score=float(recommendation.score),
-                    rank=recommendation.rank,
-                    category=recommendation.category,
+                self._item(
+                    profile, university, score=float(recommendation.score),
+                    ml_score=float(recommendation.ml_score if recommendation.ml_score is not None else recommendation.score),
+                    rank=recommendation.rank, category=recommendation.category,
                 )
                 for recommendation, university in rows
+            ],
+        )
+
+    def simulate(self, student_id: int, data: SimulationRequest) -> RecommendationList:
+        profile = self.profiles.get_by_user_id(student_id)
+        if profile is None or profile.verification_status != VerificationStatus.VERIFIED:
+            raise BusinessRuleException("A verified student profile is required to simulate recommendations")
+        values = {
+            column: getattr(profile, column)
+            for column in (
+                "gpa", "gre_score", "toefl_score", "sop_rating", "lor_rating", "has_research",
+                "academic_field", "academic_reputation_preference", "preferred_country", "preferred_region",
+                "preferred_city", "preferred_degree_level", "max_tuition_budget", "preferred_university_type",
+            )
+        }
+        if data.gpa is not None:
+            values["gpa"] = data.gpa
+        if data.gre_score is not None:
+            values["gre_score"] = data.gre_score
+        if data.budget is not None:
+            values["max_tuition_budget"] = data.budget
+        simulated = SimpleNamespace(**values)
+        universities = list(self.universities.active_for_recommendations())
+        try:
+            predictions, model_version = self.predictor.predict(simulated, universities, data.top_k)  # type: ignore[arg-type]
+        except ArtifactValidationError as exc:
+            raise ModelUnavailableException() from exc
+        university_by_id = {item.id: item for item in universities}
+        return RecommendationList(
+            generation_id=None,
+            model_version=model_version,
+            generated_at=datetime.now(timezone.utc),
+            recommendations=[
+                self._item(
+                    simulated, university_by_id[prediction.university_id], score=prediction.score,
+                    ml_score=prediction.ml_score if prediction.ml_score is not None else prediction.score,
+                    rank=rank, category=prediction.category,
+                )
+                for rank, prediction in enumerate(predictions, start=1)
             ],
         )

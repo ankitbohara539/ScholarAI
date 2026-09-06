@@ -21,6 +21,12 @@ def list_notifications(
     return NotificationService(db).list(current_user.id, page, page_size)
 
 
+@router.patch("/read-all", status_code=status.HTTP_204_NO_CONTENT)
+def mark_all_notifications_read(current_user: CurrentUser, db: Annotated[Session, Depends(get_db)]) -> Response:
+    NotificationService(db).mark_all_read(current_user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.patch("/{notification_id}/read", response_model=NotificationResponse)
 def mark_notification_read(
     notification_id: int,
@@ -28,9 +34,3 @@ def mark_notification_read(
     db: Annotated[Session, Depends(get_db)],
 ) -> NotificationResponse:
     return NotificationResponse.model_validate(NotificationService(db).mark_read(notification_id, current_user.id))
-
-
-@router.patch("/read-all", status_code=status.HTTP_204_NO_CONTENT)
-def mark_all_notifications_read(current_user: CurrentUser, db: Annotated[Session, Depends(get_db)]) -> Response:
-    NotificationService(db).mark_all_read(current_user.id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

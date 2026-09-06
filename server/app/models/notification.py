@@ -8,6 +8,7 @@ from app.db.base import Base
 
 
 class NotificationType(str, Enum):
+    PROFILE_SUBMITTED = "profile_submitted"
     PROFILE_VERIFIED = "profile_verified"
     PROFILE_REJECTED = "profile_rejected"
     ACCOUNT_SUSPENDED = "account_suspended"

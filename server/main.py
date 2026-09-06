@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.exceptions import AppException
@@ -19,7 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 
+@asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    settings.avatar_upload_dir.mkdir(parents=True, exist_ok=True)
     logger.info("%s started", settings.app_name)
     yield
 
@@ -46,3 +49,4 @@ def health_check() -> dict[str, str]:
 
 app.include_router(api_router, prefix=settings.api_prefix)
 app.include_router(websocket_router)
+app.mount("/media/avatars", StaticFiles(directory=settings.avatar_upload_dir, check_dir=False), name="avatars")

@@ -7,7 +7,7 @@ from app.core.dependencies import require_roles
 from app.db.database import get_db
 from app.models.user import User, UserRole
 from app.schemas.notification import NotificationResponse
-from app.schemas.recommendation import RecommendationList
+from app.schemas.recommendation import RecommendationList, SimulationRequest
 from app.services.recommendation_service import RecommendationService
 from app.websocket.manager import connection_manager
 
@@ -31,3 +31,12 @@ async def generate_recommendations(
 @router.get("", response_model=RecommendationList)
 def latest_recommendations(current_user: StudentUser, db: Annotated[Session, Depends(get_db)]) -> RecommendationList:
     return RecommendationService(db).latest(current_user.id)
+
+
+@router.post("/simulate", response_model=RecommendationList)
+def simulate_recommendations(
+    data: SimulationRequest,
+    current_user: StudentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> RecommendationList:
+    return RecommendationService(db).simulate(current_user.id, data)

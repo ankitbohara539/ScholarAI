@@ -14,6 +14,8 @@ from app.repositories.notification_repository import NotificationRepository
 from app.repositories.recommendation_repository import RecommendationRepository
 from app.repositories.student_profile_repository import StudentProfileRepository
 from app.schemas.dashboard import StudentDashboardStats
+from app.schemas.notification import NotificationResponse
+from app.websocket.manager import connection_manager
 
 router = APIRouter(prefix="/student", tags=["student"])
 StudentUser = Annotated[User, Depends(require_roles(UserRole.STUDENT))]
@@ -57,5 +59,12 @@ def save_preferences(
 
 
 @router.post("/profile/submit-verification", response_model=StudentProfileResponse)
-def submit_profile(current_user: StudentUser, db: Annotated[Session, Depends(get_db)]) -> StudentProfileResponse:
-    return StudentProfileResponse.model_validate(StudentProfileService(db).submit(current_user.id))
+async def submit_profile(current_user: StudentUser, db: Annotated[Session, Depends(get_db)]) -> StudentProfileResponse:
+    profile, notifications = StudentProfileService(db).submit(current_user.id)
+    for notification in notifications:
+        response = NotificationResponse.model_validate(notification)
+        await connection_manager.send_to_user(
+            notification.user_id,
+            {"event": "notification", "notification": response.model_dump(mode="json")},
+        )
+    return StudentProfileResponse.model_validate(profile)
