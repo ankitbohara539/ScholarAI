@@ -27,6 +27,7 @@ class RecommendationRepository:
                 university_id=prediction.university_id,
                 generation_id=generation_id,
                 score=Decimal(str(round(prediction.score, 6))),
+                ml_score=Decimal(str(round(prediction.ml_score if prediction.ml_score is not None else prediction.score, 6))),
                 rank=rank,
                 category=prediction.category,
                 model_version=model_version,

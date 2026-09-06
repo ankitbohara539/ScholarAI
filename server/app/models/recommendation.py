@@ -16,6 +16,7 @@ class Recommendation(Base):
     university_id: Mapped[int] = mapped_column(ForeignKey("universities.id"), nullable=False, index=True)
     generation_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     score: Mapped[Decimal] = mapped_column(Numeric(7, 6), nullable=False)
+    ml_score: Mapped[Decimal | None] = mapped_column(Numeric(7, 6), nullable=True)
     rank: Mapped[int] = mapped_column(Integer, nullable=False)
     category: Mapped[str] = mapped_column(String(20), nullable=False)
     model_version: Mapped[str | None] = mapped_column(String(80), nullable=True)

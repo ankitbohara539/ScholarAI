@@ -45,7 +45,6 @@ def prepare_candidates(profile: StudentProfile, universities: list[University]) 
         for university in universities
         if (university.minimum_gpa is None or profile.gpa >= university.minimum_gpa)
         and (university.minimum_gre_score is None or profile.gre_score >= university.minimum_gre_score)
-        and (profile.max_tuition_budget is None or university.tuition_fee is None or university.tuition_fee <= profile.max_tuition_budget)
         and (not university.degree_levels or profile.preferred_degree_level in university.degree_levels)
     ]
     if not eligible:

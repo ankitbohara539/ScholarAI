@@ -29,6 +29,10 @@ class Settings(BaseSettings):
         validation_alias="ML_METADATA_PATH",
     )
     ml_model_version: str = Field(default="admission-mlp-v1", validation_alias="ML_MODEL_VERSION")
+    avatar_upload_dir: Path = Field(
+        default=SERVER_DIR / "uploads" / "avatars", validation_alias="AVATAR_UPLOAD_DIR"
+    )
+    avatar_max_bytes: int = Field(default=3 * 1024 * 1024, gt=0, validation_alias="AVATAR_MAX_BYTES")
 
     model_config = SettingsConfigDict(
         env_file=SERVER_DIR / ".env",
@@ -44,7 +48,7 @@ class Settings(BaseSettings):
             raise ValueError("Only HS256 is supported by this application")
         return value
 
-    @field_validator("ml_model_path", "ml_metadata_path", mode="after")
+    @field_validator("ml_model_path", "ml_metadata_path", "avatar_upload_dir", mode="after")
     @classmethod
     def resolve_ml_path(cls, value: Path) -> Path:
         return value if value.is_absolute() else SERVER_DIR / value

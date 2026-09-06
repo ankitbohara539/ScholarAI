@@ -48,6 +48,23 @@ class UserRepository:
         user.is_active = active
         self.db.flush()
 
+    def list_active_admins(self) -> Sequence[User]:
+        return self.db.scalars(
+            select(User).where(
+                User.role == UserRole.ADMIN,
+                User.is_active.is_(True),
+                User.deleted_at.is_(None),
+            )
+        ).all()
+
+    def update_profile(self, user: User, *, full_name: str | None = None, profile_picture_url: str | None = None) -> User:
+        if full_name is not None:
+            user.full_name = full_name
+        if profile_picture_url is not None:
+            user.profile_picture_url = profile_picture_url
+        self.db.flush()
+        return user
+
     def soft_delete(self, user: User) -> None:
         user.is_active = False
         user.deleted_at = datetime.now(timezone.utc)

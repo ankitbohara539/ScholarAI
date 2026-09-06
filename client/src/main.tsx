@@ -4,12 +4,13 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from '@/context/AuthContext'
 import { NotificationProvider } from '@/context/NotificationContext'
+import { CompareProvider } from '@/context/CompareContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
       <NotificationProvider>
-        <App />
+        <CompareProvider><App /></CompareProvider>
       </NotificationProvider>
     </AuthProvider>
   </StrictMode>,

@@ -200,7 +200,7 @@ def test_notification_ownership_and_mark_read(client: TestClient, db: Session) -
     submit_profile(client, student_headers)
     client.post(f"/api/admin/students/{student['id']}/verify", headers=admin_headers)
     page = client.get("/api/notifications", headers=student_headers).json()
-    assert page["unread_count"] == 1
+    assert page["unread_count"] == 2
     notification_id = page["items"][0]["id"]
 
     other_payload = {**STUDENT, "email": "notification.other@example.com"}
@@ -209,6 +209,8 @@ def test_notification_ownership_and_mark_read(client: TestClient, db: Session) -
     assert client.patch(f"/api/notifications/{notification_id}/read", headers=auth_header(other_token)).status_code == 404
     marked = client.patch(f"/api/notifications/{notification_id}/read", headers=student_headers)
     assert marked.status_code == 200 and marked.json()["is_read"] is True
+    assert client.patch("/api/notifications/read-all", headers=student_headers).status_code == 204
+    assert client.get("/api/notifications", headers=student_headers).json()["unread_count"] == 0
 
 
 def test_websocket_authentication_and_delivery(client: TestClient, db: Session) -> None:
