@@ -8,6 +8,7 @@ ADMISSION_DATA = DATA_DIR / "university_admission.csv"
 MODEL_PATH = ARTIFACT_DIR / "admission_mlp.pt"
 METADATA_PATH = ARTIFACT_DIR / "metadata.json"
 METRICS_PATH = ARTIFACT_DIR / "metrics.json"
+CONFUSION_MATRIX_PATH = ARTIFACT_DIR / "admission_band_confusion_matrix.png"
 
 FEATURE_COLUMNS = [
     "GRE_Score",

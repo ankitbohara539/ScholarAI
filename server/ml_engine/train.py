@@ -6,7 +6,11 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix, mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from torch import nn
@@ -15,6 +19,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from .config import (
     ADMISSION_DATA,
     ARTIFACT_DIR,
+    CONFUSION_MATRIX_PATH,
     FEATURE_COLUMNS,
     METADATA_PATH,
     METRICS_PATH,
@@ -24,13 +29,47 @@ from .config import (
 from .data import load_admissions
 from .model import AdmissionMLP
 
+ADMISSION_BAND_THRESHOLDS = (0.50, 0.75)
+ADMISSION_BAND_LABELS = ("Low (<0.50)", "Moderate (0.50–0.74)", "High (≥0.75)")
+BAND_METRIC_NOTE = (
+    "Admission band accuracy is diagnostic agreement after discretizing continuous "
+    "regression outputs; it is not admission-prediction or recommendation accuracy."
+)
 
+# 1. Training Utilities
 def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
 
+def admission_bands(values: np.ndarray) -> np.ndarray:
+    """Convert continuous admission scores into reporting-only bands."""
+    return np.digitize(np.clip(values, 0, 1), ADMISSION_BAND_THRESHOLDS)
+
+
+def save_admission_band_confusion_matrix(
+    actual: np.ndarray,
+    predicted: np.ndarray,
+    output_path: Path = CONFUSION_MATRIX_PATH,
+) -> float:
+    """Save a binned diagnostic matrix without treating regression as classification."""
+    actual_bands = admission_bands(actual)
+    predicted_bands = admission_bands(predicted)
+    matrix = confusion_matrix(actual_bands, predicted_bands, labels=range(len(ADMISSION_BAND_LABELS)))
+    display = ConfusionMatrixDisplay(matrix, display_labels=ADMISSION_BAND_LABELS)
+    figure, axis = plt.subplots(figsize=(8, 6))
+    display.plot(ax=axis, cmap="Blues", colorbar=False, values_format="d")
+    axis.set_title("Diagnostic Admission Score Band Agreement\nContinuous regression outputs grouped into reporting bands")
+    axis.set_xlabel("Predicted admission band")
+    axis.set_ylabel("Actual admission band")
+    figure.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(output_path, dpi=180, bbox_inches="tight")
+    plt.close(figure)
+    return float(accuracy_score(actual_bands, predicted_bands))
+
+# 2 . Model Training
 def train_model(
     data_path: Path = ADMISSION_DATA,
     epochs: int = 300,
@@ -38,7 +77,7 @@ def train_model(
     learning_rate: float = 1e-3,
     patience: int = 35,
     seed: int = 42,
-) -> dict[str, float]:
+) -> dict[str, float | int | str]:
     set_seed(seed)
     frame = load_admissions(data_path)
     train_frame, test_frame = train_test_split(frame, test_size=0.20, random_state=seed)
@@ -94,16 +133,23 @@ def train_model(
     with torch.no_grad():
         predictions = model(x_test).numpy()
 
+    band_accuracy = save_admission_band_confusion_matrix(y_test.numpy(), predictions)
+
+    # 3. Metrics Calculation and Artifact Saving
     metrics = {
         "mae": float(mean_absolute_error(y_test.numpy(), predictions)),
         "rmse": float(mean_squared_error(y_test.numpy(), predictions) ** 0.5),
         "r2": float(r2_score(y_test.numpy(), predictions)),
+        "admission_band_accuracy": band_accuracy,
         "best_validation_mse": float(best_loss),
         "epochs_run": epochs_run,
         "train_rows": len(train_frame),
         "validation_rows": len(validation_frame),
         "test_rows": len(test_frame),
+        "metric_note": BAND_METRIC_NOTE,
     }
+
+    # 4. Save Model and Metadata
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     checkpoint_buffer = io.BytesIO()
@@ -143,6 +189,7 @@ def main() -> None:
     )
     print(json.dumps(metrics, indent=2))
     print(f"Saved model to: {MODEL_PATH}")
+    print(f"Saved admission-band confusion matrix to: {CONFUSION_MATRIX_PATH}")
 
 
 if __name__ == "__main__":

@@ -15,19 +15,26 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { Page, University } from "@/types/university";
 
 export function PublicUniversitiesPage() {
   const [data, setData] = useState<Page<University> | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [error, setError] = useState("");
   useEffect(() => {
+    const controller = new AbortController();
+    setError("");
     publicUniversitiesApi
-      .list({ page, page_size: 12, search: search || undefined })
+      .list({ page, page_size: 12, search: debouncedSearch || undefined }, controller.signal)
       .then(setData)
-      .catch((requestError) => setError(getApiError(requestError)));
-  }, [page, search]);
+      .catch((requestError) => {
+        if (!controller.signal.aborted) setError(getApiError(requestError));
+      });
+    return () => controller.abort();
+  }, [page, debouncedSearch]);
   return (
     <PublicLayout>
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6">

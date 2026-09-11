@@ -38,7 +38,7 @@ def university(**overrides: object) -> University:
 
 
 def profile(user_id: int = 1, **overrides: object) -> StudentProfile:
-    values = {"user_id": user_id, "gpa": Decimal("3.5"), "gre_score": 315, "toefl_score": 105, "sop_rating": Decimal("4.0"), "lor_rating": Decimal("4.0"), "has_research": True, "academic_field": "Computer Science", "academic_reputation_preference": 4, "preferred_country": "Nepal", "preferred_region": "Asia", "preferred_degree_level": "Masters", "max_tuition_budget": Decimal("25000"), "profile_completion_percentage": 100, "verification_status": VerificationStatus.VERIFIED}
+    values = {"user_id": user_id, "gpa": Decimal("3.5"), "gre_score": 315, "toefl_score": 105, "sop_rating": Decimal("4.0"), "lor_rating": Decimal("4.0"), "has_research": True, "academic_field": "Computer Science", "academic_reputation_preference": 4, "preferred_country": "Nepal", "preferred_region": "Asia", "preferred_degree_level": "Masters", "max_tuition_budget": Decimal("25000"), "budget_currency": "USD", "profile_completion_percentage": 100, "verification_status": VerificationStatus.VERIFIED}
     values.update(overrides)
     return StudentProfile(**values)
 
@@ -86,14 +86,44 @@ def test_match_criteria_are_bounded_weighted_and_explained() -> None:
     student = profile()
     result = evaluator.evaluate(student, candidate)
     assert 0 <= result.match_score <= 100
-    assert evaluator.gpa(3.5, 3.0)[0] == 1 and evaluator.gpa(2.5, 3.0)[0] < 1
-    assert evaluator.test(315, 300)[0] == 1 and evaluator.test(290, 300)[0] < 1
-    assert evaluator.budget(25000, 20000)[0] == 1 and evaluator.budget(10000, 20000)[0] == .5
-    assert evaluator.program("Computer Science", ["Computer Science"])[0] == 1
-    assert evaluator.program("History", ["Computer Science"])[0] == 0
+    assert evaluator.gpa(3.5, 3.0)[1] == 1 and evaluator.gpa(2.5, 3.0)[1] < 1
+    assert evaluator.test(315, 300)[1] == 1 and evaluator.test(290, 300)[1] < 1
+    assert evaluator.budget(25000, "USD", 20000, "USD")[1] == 1
+    assert evaluator.budget(10000, "USD", 20000, "USD")[1] == .5
+    assert evaluator.program("Computer Science", ["Computer Science"])[1] == 1
+    assert evaluator.program("History", ["Computer Science"])[1] == 0
     assert "meets" in result.breakdown["gpa"].reason.lower()
     only_gpa = MatchEvaluator(MatchWeights(gpa=1, test=0, budget=0, program=0)).evaluate(student, candidate)
     assert only_gpa.match_score == 100
+
+
+def test_match_missing_data_is_unknown_and_available_weights_are_normalized() -> None:
+    result = MatchEvaluator().evaluate(profile(), university(minimum_gre_score=None))
+    assert result.breakdown["test"].status == "unknown"
+    assert result.breakdown["test"].score is None
+    assert result.coverage == .8
+    assert result.match_score == 100
+
+    sparse = MatchEvaluator().evaluate(
+        profile(max_tuition_budget=None, academic_field=None),
+        university(minimum_gre_score=None, programs=None),
+    )
+    assert sparse.available_criteria == 1
+    assert sparse.coverage == .3
+    assert sparse.match_score == 100
+
+    empty = MatchEvaluator().evaluate(
+        profile(gpa=None, gre_score=None, max_tuition_budget=None, academic_field=None),
+        university(minimum_gpa=None, minimum_gre_score=None, programs=None),
+    )
+    assert empty.match_score is None
+    assert empty.coverage == 0
+
+
+def test_budget_match_requires_compatible_currencies() -> None:
+    evaluator = MatchEvaluator()
+    assert evaluator.budget(25000, None, 20000, "USD")[:2] == ("unknown", None)
+    assert evaluator.budget(25000, "NPR", 20000, "USD")[:2] == ("unknown", None)
 
 
 def test_cost_formula_missing_values_and_scholarship_relationship(db: Session) -> None:

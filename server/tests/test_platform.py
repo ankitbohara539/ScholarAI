@@ -34,6 +34,7 @@ PREFERENCES = {
     "preferred_city": None,
     "preferred_degree_level": "Masters",
     "max_tuition_budget": 50000,
+    "budget_currency": "USD",
     "preferred_university_type": "Private",
 }
 UNIVERSITY = {
@@ -157,6 +158,29 @@ def test_university_admin_crud_and_student_visibility(client: TestClient, db: Se
     assert client.delete(f"/api/admin/universities/{university_id}", headers=admin_headers).status_code == 204
     assert db.get(University, university_id).deleted_at is not None
     assert client.get("/api/universities", headers=student_headers).json()["total"] == 0
+
+
+def test_admin_scholarship_crud_and_rbac(client: TestClient, db: Session) -> None:
+    _, student_headers = create_student(client)
+    _, admin_headers = create_admin(db)
+    university_id = client.post("/api/admin/universities", json=UNIVERSITY, headers=admin_headers).json()["id"]
+    endpoint = f"/api/admin/universities/{university_id}/scholarships"
+    payload = {
+        "name": "Merit Award",
+        "amount": 5000,
+        "minimum_gpa": 3.5,
+        "minimum_test_score": 310,
+        "eligibility_description": "Based on verified academic results.",
+        "is_active": True,
+    }
+    assert client.post(endpoint, json=payload, headers=student_headers).status_code == 403
+    created = client.post(endpoint, json=payload, headers=admin_headers)
+    assert created.status_code == 201
+    scholarship_id = created.json()["id"]
+    assert client.get(endpoint, headers=admin_headers).json()[0]["name"] == "Merit Award"
+    updated = client.patch(f"{endpoint}/{scholarship_id}", json={"is_active": False}, headers=admin_headers)
+    assert updated.status_code == 200 and updated.json()["is_active"] is False
+    assert client.delete(f"{endpoint}/{scholarship_id}", headers=admin_headers).status_code == 204
 
 
 def test_recommendation_eligibility_generation_and_model_failure(client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch) -> None:

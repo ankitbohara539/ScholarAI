@@ -24,7 +24,7 @@ server/ml_engine/
 |-- data.py                    # validated ingestion and rank parsing
 |-- model.py                   # PyTorch MLP
 |-- train.py                   # split, scale, train, evaluate, save
-|-- recommender.py             # hybrid ranking implementation
+|-- recommender.py             # deprecated CSV/CLI adapter to app.ml.scoring
 |-- recommend.py               # command-line interface
 `-- tests/test_engine.py
 ```
@@ -66,6 +66,10 @@ Generated files:
 - `artifacts/admission_mlp.pt` — PyTorch checkpoint
 - `artifacts/metadata.json` — scaler and historical cohort
 - `artifacts/metrics.json` — held-out MAE, RMSE, and R²
+
+The confusion matrix discretizes continuous actual and predicted scores into reporting
+bands. Its band agreement is a diagnostic visualization only; it is not overall
+admission-prediction accuracy or recommendation accuracy.
 
 The reproducible run already performed for this project used seed 42 and produced:
 

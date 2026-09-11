@@ -16,6 +16,7 @@ export interface StudentProfile {
   preferred_city: string | null
   preferred_degree_level: string | null
   max_tuition_budget: string | null
+  budget_currency: string | null
   preferred_university_type: string | null
   profile_completion_percentage: number
   verification_status: VerificationStatus
@@ -44,5 +45,6 @@ export interface PreferenceProfileInput {
   preferred_city: string | null
   preferred_degree_level: string
   max_tuition_budget: number | null
+  budget_currency: string | null
   preferred_university_type: string | null
 }

@@ -26,6 +26,11 @@ class UniversityBase(BaseModel):
     degree_levels: list[str] | None = None
     description: str | None = None
 
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str | None) -> str | None:
+        return value.upper() if value else None
+
 
 class UniversityCreate(UniversityBase):
     model_config = ConfigDict(extra="forbid")
@@ -53,6 +58,11 @@ class UniversityUpdate(BaseModel):
     is_active: bool | None = None
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str | None) -> str | None:
+        return value.upper() if value else None
 
 
 class UniversityResponse(UniversityBase):

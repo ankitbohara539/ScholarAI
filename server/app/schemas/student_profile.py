@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.student_profile import VerificationStatus
 
@@ -25,9 +25,15 @@ class PreferenceProfileUpdate(BaseModel):
     preferred_city: str | None = Field(default=None, max_length=120)
     preferred_degree_level: str = Field(min_length=2, max_length=80)
     max_tuition_budget: Decimal | None = Field(default=None, ge=0)
+    budget_currency: str | None = Field(default=None, min_length=3, max_length=3)
     preferred_university_type: str | None = Field(default=None, max_length=80)
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("budget_currency")
+    @classmethod
+    def normalize_currency(cls, value: str | None) -> str | None:
+        return value.upper() if value else None
 
 
 class StudentProfileResponse(BaseModel):
@@ -46,6 +52,7 @@ class StudentProfileResponse(BaseModel):
     preferred_city: str | None
     preferred_degree_level: str | None
     max_tuition_budget: Decimal | None
+    budget_currency: str | None
     preferred_university_type: str | None
     profile_completion_percentage: int
     verification_status: VerificationStatus

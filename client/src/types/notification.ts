@@ -1,4 +1,4 @@
-export type NotificationType = 'profile_verified' | 'profile_rejected' | 'account_suspended' | 'account_reactivated' | 'recommendation_ready'
+export type NotificationType = 'profile_submitted' | 'profile_verified' | 'profile_rejected' | 'account_suspended' | 'account_reactivated' | 'recommendation_ready'
 
 export interface Notification {
   id: number

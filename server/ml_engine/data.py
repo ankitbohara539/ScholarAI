@@ -6,6 +6,7 @@ import pandas as pd
 
 from .config import FEATURE_COLUMNS, TARGET_COLUMN
 
+# 1. Data Loading and Preprocessing
 
 def read_csv_flexible(path: Path) -> pd.DataFrame:
     """Read UTF-8 or common Windows-encoded CSV files."""
@@ -16,7 +17,7 @@ def read_csv_flexible(path: Path) -> pd.DataFrame:
             continue
     raise ValueError(f"Could not decode CSV: {path}")
 
-
+# 2. Admission Data Handling
 def load_admissions(path: Path) -> pd.DataFrame:
     frame = read_csv_flexible(path)
     required = FEATURE_COLUMNS + [TARGET_COLUMN]
@@ -28,13 +29,14 @@ def load_admissions(path: Path) -> pd.DataFrame:
         raise ValueError("Admission data has no valid numeric rows")
     return frame
 
-
+# 3. University Data Handling
 def rank_midpoint(value: object) -> float:
     numbers = [int(number) for number in re.findall(r"\d+", str(value).replace(",", ""))]
     if not numbers:
         return np.nan
     return float(sum(numbers[:2]) / min(len(numbers), 2))
 
+# 4. University Rating Mapping
 
 def rank_to_rating(rank: float) -> int:
     if rank <= 50:
@@ -47,7 +49,7 @@ def rank_to_rating(rank: float) -> int:
         return 2
     return 1
 
-
+# 5. University Data Loading
 def load_universities(path: Path) -> pd.DataFrame:
     frame = read_csv_flexible(path)
     required = {

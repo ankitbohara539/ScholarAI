@@ -33,6 +33,7 @@ class StudentProfile(Base):
     preferred_city: Mapped[str | None] = mapped_column(String(120), nullable=True)
     preferred_degree_level: Mapped[str | None] = mapped_column(String(80), nullable=True)
     max_tuition_budget: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    budget_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     preferred_university_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     profile_completion_percentage: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     verification_status: Mapped[VerificationStatus] = mapped_column(
