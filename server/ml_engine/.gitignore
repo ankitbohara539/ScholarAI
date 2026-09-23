@@ -1,4 +1,5 @@
 artifacts/*.pt
 artifacts/*.json
+artifacts/*.pkl
 __pycache__/
 .pytest_cache/

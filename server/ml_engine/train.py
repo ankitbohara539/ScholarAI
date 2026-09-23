@@ -24,10 +24,12 @@ from .config import (
     METADATA_PATH,
     METRICS_PATH,
     MODEL_PATH,
+    MODEL_PICKLE_PATH,
     TARGET_COLUMN,
 )
 from .data import load_admissions
 from .model import AdmissionMLP
+from .persistence import save_model
 
 ADMISSION_BAND_THRESHOLDS = (0.50, 0.75)
 ADMISSION_BAND_LABELS = ("Low (<0.50)", "Moderate (0.50–0.74)", "High (≥0.75)")
@@ -171,6 +173,15 @@ def train_model(
         "seed": seed,
     }
     METADATA_PATH.write_text(json.dumps(metadata), encoding="utf-8")
+    save_model(
+        {
+            "input_size": len(FEATURE_COLUMNS),
+            "hidden_sizes": (64, 32, 16),
+            "model_state": {key: value.detach().cpu().numpy() for key, value in model.state_dict().items()},
+            "metadata": metadata,
+        },
+        MODEL_PICKLE_PATH,
+    )
     METRICS_PATH.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     return metrics
 
@@ -189,6 +200,7 @@ def main() -> None:
     )
     print(json.dumps(metrics, indent=2))
     print(f"Saved model to: {MODEL_PATH}")
+    print(f"Saved pickle model to: {MODEL_PICKLE_PATH}")
     print(f"Saved admission-band confusion matrix to: {CONFUSION_MATRIX_PATH}")
 
 

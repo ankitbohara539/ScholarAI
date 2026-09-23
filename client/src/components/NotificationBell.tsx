@@ -8,11 +8,12 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
-  const { notifications, unreadCount, error, markRead, markAllRead } =
+  const { notifications, unreadCount, isLoading, error, markRead, markAllRead } =
     useNotifications();
   return (
     <Popover>
@@ -60,7 +61,11 @@ export function NotificationBell() {
         )}
         <Separator />
         <ScrollArea className="h-80">
-          {notifications.length === 0 ? (
+          {isLoading ? (
+            <div className="space-y-3 p-4" aria-label="Loading notifications">
+              {[1, 2, 3].map((item) => <Skeleton key={item} className="h-16 w-full" />)}
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               No notifications yet.
             </div>

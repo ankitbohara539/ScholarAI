@@ -40,10 +40,16 @@ def prepare_candidates(profile: StudentProfile, universities: list[University]) 
     if any(value is None for value in profile_values):
         raise ArtifactValidationError("Verified profile is missing required model features")
 
+    minimum_gpa_preference = profile.minimum_gpa_preference if profile.minimum_gpa_preference is not None else 1.0
+    maximum_gpa_preference = profile.maximum_gpa_preference if profile.maximum_gpa_preference is not None else 4.0
     eligible = [
         university
         for university in universities
         if (university.minimum_gpa is None or profile.gpa >= university.minimum_gpa)
+        and (
+            university.minimum_gpa is None
+            or minimum_gpa_preference <= university.minimum_gpa <= maximum_gpa_preference
+        )
         and (university.minimum_gre_score is None or profile.gre_score >= university.minimum_gre_score)
         and (not university.degree_levels or profile.preferred_degree_level in university.degree_levels)
     ]

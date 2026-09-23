@@ -9,7 +9,10 @@ from app.db.base import Base
 
 class Recommendation(Base):
     __tablename__ = "recommendations"
-    __table_args__ = (UniqueConstraint("generation_id", "rank", name="uq_recommendation_generation_rank"),)
+    __table_args__ = (
+        UniqueConstraint("generation_id", "rank", name="uq_recommendation_generation_rank"),
+        UniqueConstraint("student_id", "profile_version", "rank", name="uq_recommendation_profile_version_rank"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
@@ -20,4 +23,5 @@ class Recommendation(Base):
     rank: Mapped[int] = mapped_column(Integer, nullable=False)
     category: Mapped[str] = mapped_column(String(20), nullable=False)
     model_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    profile_version: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

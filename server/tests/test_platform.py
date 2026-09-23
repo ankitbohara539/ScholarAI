@@ -204,6 +204,11 @@ def test_recommendation_eligibility_generation_and_model_failure(client: TestCli
         raise ArtifactValidationError("broken")
 
     monkeypatch.setattr(RecommendationPredictor, "predict", failed_predict)
+    stored_profile = db.scalar(select(StudentProfile).where(StudentProfile.user_id == student["id"]))
+    assert stored_profile is not None
+    stored_profile.gpa = 3.8
+    stored_profile.recommendation_status = "pending"
+    db.commit()
     assert client.post("/api/student/recommendations/generate", headers=student_headers).status_code == 503
 
 

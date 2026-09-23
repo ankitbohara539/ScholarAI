@@ -11,6 +11,8 @@ export interface StudentProfile {
   has_research: boolean | null
   academic_field: string | null
   academic_reputation_preference: number | null
+  minimum_gpa_preference: string
+  maximum_gpa_preference: string
   preferred_country: string | null
   preferred_region: string | null
   preferred_city: string | null
@@ -24,6 +26,10 @@ export interface StudentProfile {
   verified_at: string | null
   verified_by_admin_id: number | null
   rejection_reason: string | null
+  recommendation_profile_version: string | null
+  recommendation_status: 'pending' | 'generating' | 'ready' | 'error'
+  recommendation_error: string | null
+  recommendations_generated_at: string | null
   created_at: string
   updated_at: string
 }
@@ -37,6 +43,8 @@ export interface AcademicProfileInput {
   has_research: boolean
   academic_field: string
   academic_reputation_preference: number
+  minimum_gpa_preference: number
+  maximum_gpa_preference: number
 }
 
 export interface PreferenceProfileInput {

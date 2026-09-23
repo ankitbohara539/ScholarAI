@@ -1,4 +1,6 @@
 import logging
+import hashlib
+import json
 from dataclasses import asdict
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -10,7 +12,7 @@ from app.core.exceptions import BusinessRuleException, ModelUnavailableException
 from app.ml.exceptions import ArtifactValidationError
 from app.ml.predictor import Prediction, RecommendationPredictor
 from app.models.notification import Notification, NotificationType
-from app.models.student_profile import VerificationStatus
+from app.models.student_profile import StudentProfile
 from app.repositories.notification_repository import NotificationRepository
 from app.repositories.recommendation_repository import RecommendationRepository
 from app.repositories.student_profile_repository import StudentProfileRepository
@@ -66,11 +68,35 @@ class RecommendationService:
             for rank, prediction in enumerate(predictions, start=1)
         ], model_version
 
-    def generate(self, student_id: int, top_k: int) -> tuple[RecommendationList, Notification | None]:
+    @staticmethod
+    def profile_version(profile: StudentProfile) -> str:
+        fields = (
+            "gpa", "gre_score", "toefl_score", "sop_rating", "lor_rating", "has_research",
+            "academic_field", "academic_reputation_preference", "minimum_gpa_preference",
+            "maximum_gpa_preference", "preferred_country", "preferred_region", "preferred_city",
+            "preferred_degree_level", "max_tuition_budget", "budget_currency", "preferred_university_type",
+        )
+        payload = {field: str(getattr(profile, field)) if getattr(profile, field) is not None else None for field in fields}
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+    def generate(self, student_id: int, top_k: int, *, force: bool = False) -> tuple[RecommendationList, Notification | None]:
         profile = self.profiles.get_by_user_id(student_id)
-        if profile is None or profile.verification_status != VerificationStatus.VERIFIED:
-            raise BusinessRuleException("A verified student profile is required to generate recommendations")
-        items, model_version = self._recommend(profile, top_k)
+        if profile is None or profile.profile_completion_percentage != 100:
+            raise BusinessRuleException("Complete all required profile details before generating recommendations")
+        version = self.profile_version(profile)
+        if not force and profile.recommendation_profile_version == version and profile.recommendation_status == "ready":
+            return self.latest(student_id), None
+
+        profile.recommendation_status = "generating"
+        profile.recommendation_error = None
+        self.db.commit()
+        try:
+            items, model_version = self._recommend(profile, top_k)
+        except ModelUnavailableException:
+            profile.recommendation_status = "error"
+            profile.recommendation_error = "The recommendation model is unavailable. Train or restore the model and try again."
+            self.db.commit()
+            raise
 
         generation_id = str(uuid4())
         rows = self.recommendations.create_generation(
@@ -86,6 +112,7 @@ class RecommendationService:
                 for item in items
             ],
             model_version=model_version,
+            profile_version=version,
         )
         notification = None
         if rows:
@@ -95,11 +122,16 @@ class RecommendationService:
                 title="Recommendations Ready",
                 message=f"Your latest {len(rows)} university recommendations are ready.",
             )
+        generated_at = rows[0].created_at if rows else datetime.now(timezone.utc)
+        profile.recommendation_profile_version = version
+        profile.recommendation_status = "ready"
+        profile.recommendation_error = None
+        profile.recommendations_generated_at = generated_at
         self.db.commit()
         response = RecommendationList(
             generation_id=generation_id,
             model_version=model_version,
-            generated_at=rows[0].created_at if rows else datetime.now(timezone.utc),
+            generated_at=generated_at,
             recommendations=[item.model_copy(update={"rank": row.rank}) for item, row in zip(items, rows, strict=True)],
         )
         if notification:
@@ -128,15 +160,15 @@ class RecommendationService:
 
     def simulate(self, student_id: int, data: SimulationRequest) -> RecommendationList:
         profile = self.profiles.get_by_user_id(student_id)
-        if profile is None or profile.verification_status != VerificationStatus.VERIFIED:
-            raise BusinessRuleException("A verified student profile is required to simulate recommendations")
+        if profile is None or profile.profile_completion_percentage != 100:
+            raise BusinessRuleException("A complete student profile is required to simulate recommendations")
         values = {
             column: getattr(profile, column)
             for column in (
                 "gpa", "gre_score", "toefl_score", "sop_rating", "lor_rating", "has_research",
                 "academic_field", "academic_reputation_preference", "preferred_country", "preferred_region",
                 "preferred_city", "preferred_degree_level", "max_tuition_budget", "budget_currency",
-                "preferred_university_type",
+                "preferred_university_type", "minimum_gpa_preference", "maximum_gpa_preference",
             )
         }
         if data.gpa is not None:

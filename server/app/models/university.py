@@ -30,6 +30,8 @@ class University(Base):
     application_fee: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     acceptance_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    graduation_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    student_population: Mapped[int | None] = mapped_column(Integer, nullable=True)
     programs: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     university_type: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     degree_levels: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)

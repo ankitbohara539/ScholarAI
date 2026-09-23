@@ -54,7 +54,7 @@ export function RecommendationsPage() {
             </p>
           </div>
           <Button
-            disabled={generating || profile?.verification_status !== "verified"}
+            disabled={generating || profile?.profile_completion_percentage !== 100}
             onClick={() => void generate()}
           >
             {generating ? (
@@ -62,7 +62,7 @@ export function RecommendationsPage() {
             ) : (
               <Sparkles />
             )}
-            Generate recommendations
+            {data?.generation_id ? "Refresh recommendations" : "Generate recommendations"}
           </Button>
         </div>
         {error && <Alert>{error}</Alert>}
@@ -71,18 +71,26 @@ export function RecommendationsPage() {
             <Skeleton className="h-96" />
             <Skeleton className="h-96" />
           </div>
-        ) : profile?.verification_status !== "verified" ? (
+        ) : profile?.profile_completion_percentage !== 100 ? (
           <Alert className="border-amber-300 bg-amber-50 text-amber-900">
             <div className="flex items-center gap-2 font-semibold">
               <StatusBadge status={profile?.verification_status ?? "draft"} />
-              Verification required
+              More profile details needed
             </div>
             <p className="mt-2">
-              Complete and submit your profile, then wait for administrator
-              verification.
+              Complete every required academic and preference field to generate
+              recommendations. Administrator approval is not required.
             </p>
           </Alert>
         ) : null}
+        {profile?.recommendation_status === "error" && (
+          <Alert>{profile.recommendation_error || "Automatic recommendation generation failed. Try again."}</Alert>
+        )}
+        {profile?.recommendation_status === "ready" && !error && (
+          <Alert className="border-emerald-300 bg-emerald-50 text-emerald-800">
+            Recommendations are up to date with your saved profile.
+          </Alert>
+        )}
         {data?.generated_at && (
           <p className="text-sm text-muted-foreground">
             Latest generation: {new Date(data.generated_at).toLocaleString()} ·{" "}

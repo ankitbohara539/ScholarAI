@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 DATA_DIR = PACKAGE_DIR / "data" / "raw"
@@ -6,6 +7,7 @@ ARTIFACT_DIR = PACKAGE_DIR / "artifacts"
 QS_DATA = DATA_DIR / "QS_Ranking_Uni_Dataset.csv"
 ADMISSION_DATA = DATA_DIR / "university_admission.csv"
 MODEL_PATH = ARTIFACT_DIR / "admission_mlp.pt"
+MODEL_PICKLE_PATH = Path(os.getenv("ML_PICKLE_PATH", ARTIFACT_DIR / "admission_model.pkl"))
 METADATA_PATH = ARTIFACT_DIR / "metadata.json"
 METRICS_PATH = ARTIFACT_DIR / "metrics.json"
 CONFUSION_MATRIX_PATH = ARTIFACT_DIR / "admission_band_confusion_matrix.png"

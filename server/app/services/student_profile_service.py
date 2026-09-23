@@ -19,6 +19,8 @@ REQUIRED_PROFILE_FIELDS = (
     "has_research",
     "academic_field",
     "academic_reputation_preference",
+    "minimum_gpa_preference",
+    "maximum_gpa_preference",
     "preferred_country",
     "preferred_region",
     "preferred_degree_level",
@@ -45,8 +47,8 @@ class StudentProfileService:
 
     @staticmethod
     def _ensure_editable(profile: StudentProfile) -> None:
-        if profile.verification_status in {VerificationStatus.PENDING, VerificationStatus.VERIFIED}:
-            raise BusinessRuleException("Profile cannot be edited while pending or verified")
+        if profile.verification_status == VerificationStatus.PENDING:
+            raise BusinessRuleException("Profile cannot be edited while pending verification")
 
     def _save(self, user_id: int, values: dict[str, object]) -> StudentProfile:
         profile = self.profiles.get_or_create(user_id)
@@ -54,8 +56,16 @@ class StudentProfileService:
         if profile.verification_status == VerificationStatus.REJECTED:
             profile.verification_status = VerificationStatus.DRAFT
             profile.rejection_reason = None
+        elif profile.verification_status == VerificationStatus.VERIFIED:
+            profile.verification_status = VerificationStatus.DRAFT
+            profile.verified_at = None
+            profile.verified_by_admin_id = None
+        changed = any(getattr(profile, field) != value for field, value in values.items())
         self.profiles.update(profile, values)
         profile.profile_completion_percentage = calculate_completion(profile)
+        if changed:
+            profile.recommendation_status = "pending"
+            profile.recommendation_error = None
         self.db.commit()
         self.db.refresh(profile)
         return profile

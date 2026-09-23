@@ -16,6 +16,8 @@ from app.repositories.student_profile_repository import StudentProfileRepository
 from app.schemas.dashboard import StudentDashboardStats
 from app.schemas.notification import NotificationResponse
 from app.websocket.manager import connection_manager
+from app.core.exceptions import ModelUnavailableException
+from app.services.recommendation_service import RecommendationService
 
 router = APIRouter(prefix="/student", tags=["student"])
 StudentUser = Annotated[User, Depends(require_roles(UserRole.STUDENT))]
@@ -46,7 +48,10 @@ def save_academic(
     current_user: StudentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> StudentProfileResponse:
-    return StudentProfileResponse.model_validate(StudentProfileService(db).save_academic(current_user.id, data))
+    profile = StudentProfileService(db).save_academic(current_user.id, data)
+    _generate_when_complete(db, profile, current_user.id)
+    db.refresh(profile)
+    return StudentProfileResponse.model_validate(profile)
 
 
 @router.patch("/profile/preferences", response_model=StudentProfileResponse)
@@ -55,7 +60,10 @@ def save_preferences(
     current_user: StudentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> StudentProfileResponse:
-    return StudentProfileResponse.model_validate(StudentProfileService(db).save_preferences(current_user.id, data))
+    profile = StudentProfileService(db).save_preferences(current_user.id, data)
+    _generate_when_complete(db, profile, current_user.id)
+    db.refresh(profile)
+    return StudentProfileResponse.model_validate(profile)
 
 
 @router.post("/profile/submit-verification", response_model=StudentProfileResponse)
@@ -68,3 +76,11 @@ async def submit_profile(current_user: StudentUser, db: Annotated[Session, Depen
             {"event": "notification", "notification": response.model_dump(mode="json")},
         )
     return StudentProfileResponse.model_validate(profile)
+def _generate_when_complete(db: Session, profile: object, student_id: int) -> None:
+    if getattr(profile, "profile_completion_percentage", 0) != 100:
+        return
+    try:
+        RecommendationService(db).generate(student_id, 10)
+    except ModelUnavailableException:
+        # Profile updates remain durable; the response exposes the persisted model error.
+        pass

@@ -21,6 +21,8 @@ class UniversityBase(BaseModel):
     application_fee: Decimal | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     acceptance_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    graduation_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    student_population: int | None = Field(default=None, ge=0)
     programs: list[str] | None = None
     university_type: str | None = Field(default=None, max_length=80)
     degree_levels: list[str] | None = None
@@ -51,6 +53,8 @@ class UniversityUpdate(BaseModel):
     application_fee: Decimal | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     acceptance_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    graduation_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    student_population: int | None = Field(default=None, ge=0)
     programs: list[str] | None = None
     university_type: str | None = Field(default=None, max_length=80)
     degree_levels: list[str] | None = None

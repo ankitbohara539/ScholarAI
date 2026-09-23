@@ -20,6 +20,7 @@ class RecommendationRepository:
         generation_id: str,
         predictions: list[Prediction],
         model_version: str,
+        profile_version: str,
     ) -> list[Recommendation]:
         rows = [
             Recommendation(
@@ -31,6 +32,7 @@ class RecommendationRepository:
                 rank=rank,
                 category=prediction.category,
                 model_version=model_version,
+                profile_version=profile_version,
             )
             for rank, prediction in enumerate(predictions, start=1)
         ]

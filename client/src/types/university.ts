@@ -14,6 +14,8 @@ export interface University {
   application_fee: string | null
   currency: string | null
   acceptance_rate: string | null
+  graduation_rate: string | null
+  student_population: number | null
   programs: string[] | null
   university_type: string | null
   degree_levels: string[] | null
@@ -52,6 +54,8 @@ export interface UniversityInput {
   application_fee?: number | null
   currency?: string | null
   acceptance_rate?: number | null
+  graduation_rate?: number | null
+  student_population?: number | null
   programs?: string[] | null
   university_type?: string | null
   degree_levels?: string[] | null

@@ -47,6 +47,8 @@ const emptyAcademic: AcademicProfileInput = {
   has_research: false,
   academic_field: "",
   academic_reputation_preference: 4,
+  minimum_gpa_preference: 1,
+  maximum_gpa_preference: 4,
 };
 const emptyPreferences: PreferenceProfileInput = {
   preferred_country: "",
@@ -82,6 +84,8 @@ export function ProfilePage() {
           academic_field: value.academic_field ?? "",
           academic_reputation_preference:
             value.academic_reputation_preference ?? 4,
+          minimum_gpa_preference: Number(value.minimum_gpa_preference ?? 1),
+          maximum_gpa_preference: Number(value.maximum_gpa_preference ?? 4),
         });
         setPreferences({
           preferred_country: value.preferred_country ?? "",
@@ -98,8 +102,7 @@ export function ProfilePage() {
       .catch((requestError) => setError(getApiError(requestError)));
   }, []);
   const locked =
-    profile?.verification_status === "pending" ||
-    profile?.verification_status === "verified";
+    profile?.verification_status === "pending";
 
   async function saveAcademic(event: FormEvent) {
     event.preventDefault();
@@ -183,6 +186,19 @@ export function ProfilePage() {
                 {profile?.verification_status}.
               </Alert>
             )}
+            {profile?.recommendation_status === "generating" && (
+              <Alert className="border-primary/30 bg-primary/5 text-foreground">
+                Generating university recommendations for this profile…
+              </Alert>
+            )}
+            {profile?.recommendation_status === "ready" && profile.profile_completion_percentage === 100 && (
+              <Alert className="border-emerald-300 bg-emerald-50 text-emerald-800">
+                Recommendations were generated automatically for this profile.
+              </Alert>
+            )}
+            {profile?.recommendation_status === "error" && (
+              <Alert>{profile.recommendation_error || "Recommendations could not be generated."}</Alert>
+            )}
           </CardContent>
         </Card>
         {error && <Alert>{error}</Alert>}
@@ -242,6 +258,10 @@ export function ProfilePage() {
                   value={`${profile?.gpa ?? "—"} / ${profile?.gre_score ?? "—"} / ${profile?.toefl_score ?? "—"}`}
                 />
                 <Review
+                  label="Preferred university GPA range"
+                  value={`${profile?.minimum_gpa_preference ?? "—"}–${profile?.maximum_gpa_preference ?? "—"}`}
+                />
+                <Review
                   label="Preferred location"
                   value={[profile?.preferred_country, profile?.preferred_region]
                     .filter(Boolean)
@@ -296,6 +316,7 @@ function AcademicForm({
 }) {
   const number = (key: keyof AcademicProfileInput, next: string) =>
     setValue({ ...value, [key]: Number(next) });
+  const invalidGpaRange = value.minimum_gpa_preference > value.maximum_gpa_preference;
   return (
     <Card>
       <CardHeader>
@@ -340,7 +361,7 @@ function AcademicForm({
               required
             />
           </Field>
-          <Field label="Academic field">
+          <Field label="Academic field"> 
             <Input
               value={value.academic_field}
               onChange={(e) =>
@@ -414,8 +435,9 @@ function AcademicForm({
               </SelectContent>
             </Select>
           </Field>
+        
           <div className="sm:col-span-2 flex justify-end">
-            <Button disabled={saving || locked}>
+            <Button disabled={saving || locked || invalidGpaRange}>
               {saving ? (
                 <LoaderCircle className="animate-spin" />
               ) : (

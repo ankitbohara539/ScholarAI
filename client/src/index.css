@@ -12,18 +12,18 @@
   --card-foreground: #172033;
   --popover: #ffffff;
   --popover-foreground: #172033;
-  --primary: #3155a6;
+  --primary: #524959;
   --primary-foreground: #ffffff;
-  --secondary: #edf2ff;
-  --secondary-foreground: #27468c;
+  --secondary: #f0edf1;
+  --secondary-foreground: #403746;
   --muted: #eef1f6;
   --muted-foreground: #667085;
-  --accent: #edf2ff;
-  --accent-foreground: #27468c;
+  --accent: #f0edf1;
+  --accent-foreground: #403746;
   --destructive: #c73545;
   --border: #e1e6ef;
   --input: #d6dce7;
-  --ring: #4e6fbd;
+  --ring: #75687e;
 }
 
 @theme inline {

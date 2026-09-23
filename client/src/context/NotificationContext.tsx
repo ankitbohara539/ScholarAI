@@ -31,6 +31,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -38,6 +39,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       const page = await notificationsApi.list();
       setNotifications(page.items);
+      setUnreadCount(page.unread_count);
       setError("");
     } catch (requestError) {
       setError(
@@ -51,6 +53,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setNotifications([]);
+      setUnreadCount(0);
       setError("");
       return;
     }
@@ -84,6 +87,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             setNotifications((current) =>
               upsertNotification(current, payload.notification!),
             );
+            if (!payload.notification.is_read) setUnreadCount((count) => count + 1);
           }
         } catch {
           setError("A malformed real-time notification was ignored.");
@@ -121,6 +125,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       const updated = await notificationsApi.markRead(id);
       setNotifications((current) => upsertNotification(current, updated));
+      setUnreadCount((count) => Math.max(0, count - 1));
       setError("");
     } catch (requestError) {
       setError(
@@ -133,8 +138,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       await notificationsApi.markAllRead();
       setNotifications((current) =>
-        current.map((item) => ({ ...item, is_read: true })),
+        current.map((item) => ({ ...item, is_read: true, read_at: new Date().toISOString() })),
       );
+      setUnreadCount(0);
       setError("");
     } catch (requestError) {
       setError(
@@ -143,10 +149,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const unreadCount = useMemo(
-    () => notifications.filter((item) => !item.is_read).length,
-    [notifications],
-  );
   const value = useMemo<NotificationContextValue>(
     () => ({
       notifications,

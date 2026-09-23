@@ -3,7 +3,6 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiError } from "@/api/axios";
 import { PasswordInput } from "@/components/auth/PasswordInput";
-import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -127,7 +126,6 @@ export function RegisterPage() {
                   </>
                 )}
               </Button>
-              <SocialLoginButtons />
               <p className="text-center text-sm text-muted-foreground">
                 Already registered?{" "}
                 <Link
